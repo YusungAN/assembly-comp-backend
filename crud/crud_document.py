@@ -1,7 +1,8 @@
-from db.init_db import pinecone, supabase
+from db import pinecone, supabase
 from util.openai import text_embedding
 from typing import Union
 import json
+
 
 def query_pinecone_document(text: str, top_k: int):
     try:
@@ -16,7 +17,7 @@ def query_pinecone_document(text: str, top_k: int):
         return query_res['matches']
     except:
         return []
-    
+
 
 def search_document_by_id(id: int):
     fetch = supabase.table('document').select('*').eq('pinecone_id', id).execute()
