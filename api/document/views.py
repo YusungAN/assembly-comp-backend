@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from models import UserText
-from crud.crud_document import query_pinecone_document, search_document_by_id
+from crud.crud_document import query_pinecone_document, search_document_by_id, query_pinecone_law, search_law_by_id
 from util.reference import make_reference
 
 router = APIRouter()
@@ -29,6 +29,30 @@ def query_sim_doc(user_text: UserText):
             res_list.append(data)
 
         return {'success': True, 'documents': res_list}
+    except Exception as e:
+        print(e)
+        return {'success': False}
+    
+
+@router.post('similar_law')
+def query_sim_law(user_text: UserText):
+    try:
+        text = user_text.text
+
+        sim_law_id = query_pinecone_law(text, top_k=5)
+        if sim_law_id is None:
+            raise Exception
+        print(sim_law_id)
+        res_list = []
+        for item in sim_law_id:
+            id = int(item['id'])
+            table_data = search_law_by_id(id)
+            if table_data is None:
+                continue
+            data = {'title': table_data['title'].strip(), 'url': table_data['url']}
+            res_list.append(data)
+
+        return {'success': True, 'laws': res_list}
     except Exception as e:
         print(e)
         return {'success': False}
