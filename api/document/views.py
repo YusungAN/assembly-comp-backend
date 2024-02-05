@@ -34,7 +34,7 @@ def query_sim_doc(user_text: UserText):
         return {'success': False}
     
 
-@router.post('similar_law')
+@router.post('/similar_law')
 def query_sim_law(user_text: UserText):
     try:
         text = user_text.text
