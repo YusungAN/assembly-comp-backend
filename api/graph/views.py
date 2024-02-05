@@ -14,12 +14,11 @@ from fastapi import FastAPI, Response, status
 from fastapi.responses import FileResponse
 import os
 
-
-
 router = APIRouter(
     responses={404: {"description": "Not found"}},
 )
 df = None
+
 
 @router.get("/stat/list")
 async def stats_list():
@@ -32,9 +31,11 @@ async def stats_list():
     response = requests.request("GET", url, headers=headers, data=payload)
 
     data = json.loads(response.text)
-
+    #
     return {
-        "data": data["Sttsapitbl"][1]["row"][:30]
+        "data": [x for (i, x) in enumerate(data["Sttsapitbl"][1]["row"]) if
+                 i in [0, 2, 3, 4, 14, 15, 43, 50, 51, 55, 57, 62, 65, 72, 79, 80, 87, 90]][::-1]
+        # "data": data["Sttsapitbl"][1]["row"][70:]
     }
 
 
@@ -76,7 +77,7 @@ class EditGptInput(BaseModel):
     statbl_id: str
     prompt: str
     stat_data: list
-    graph_type : int
+    graph_type: int
 
 
 @router.post("/stat/gpt/range")
@@ -107,7 +108,6 @@ async def gpt_range(gpt_input: GptInput):
     exec(gpt_result, globals(), loc)
     df = loc["df"]
 
-
     df['연도'] = df['연도'].astype(str)
     df = df.rename(columns={"연도": "WRTTIME_IDTFR_ID", "항목": "ITM_NM", "단위": "UI_NM", "값": "DTA_VAL"})
 
@@ -118,9 +118,12 @@ async def gpt_range(gpt_input: GptInput):
 
 @router.post("/stat/gpt/edit")
 async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
-
     global df
-    plt.rc("font", family="Malgun Gothic")
+    import matplotlib.font_manager as fm
+    font_location = './static/NanumGothic.ttf'  # 폰트 위치
+
+    font_name = fm.FontProperties(fname=font_location).get_name()
+    plt.rc("font", family=font_name)
     sns.set(font="Malgun Gothic",
             rc={"axes.unicode_minus": False}, style='white')
 
@@ -130,9 +133,9 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     client = openai.OpenAI(api_key=os.getenv('OPEN_AI_KEY'))
 
     prompt_dict = {
-        0 : "막대 그래프를 그려줘.",
-        1 : "꺾은선 그래프를 그려줘.",
-        2 : "원그래프를 그려줘."
+        0: "막대 그래프를 그려줘.",
+        1: "꺾은선 그래프를 그려줘.",
+        2: "원그래프를 그려줘."
     }
 
     response = client.chat.completions.create(
@@ -163,7 +166,6 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
         is_error = True
     # print(loc)
 
-
     if is_error is False:
 
         import io
@@ -179,7 +181,7 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
         print(uuid)
         return {
             "data": uuid + ".jpg",
-            "time" : datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+            "time": datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         }
     else:
         raise HTTPException(status_code=404, detail="invalid name")
@@ -190,7 +192,7 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     #     "data": json.loads(df.to_json(orient='records'))
     # }
 
+
 @router.get("/download/photo/{photo_url}")
 async def download_photo(photo_url: str):
-
     return FileResponse("./result/images/" + photo_url)
