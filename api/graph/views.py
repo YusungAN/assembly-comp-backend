@@ -124,7 +124,7 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
 
     font_name = fm.FontProperties(fname=font_location).get_name()
     plt.rc("font", family=font_name)
-    sns.set(font="Malgun Gothic",
+    sns.set(font=font_name,
             rc={"axes.unicode_minus": False}, style='white')
 
     df = pd.DataFrame(gpt_input.stat_data)
