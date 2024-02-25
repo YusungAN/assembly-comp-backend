@@ -89,7 +89,7 @@ async def gpt_range(gpt_input: GptInput):
     client = openai.OpenAI(api_key=os.getenv('OPEN_AI_KEY'))
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": """You are using Python pandas library.
         Name of dataframe is 'df', which has the following columns:
@@ -102,7 +102,8 @@ async def gpt_range(gpt_input: GptInput):
     )
 
     gpt_result = response.choices[0].message.content
-
+    gpt_result = gpt_result.replace("```python\n", "").replace("\n```", "")
+    print(gpt_result)
     loc = {}
 
     exec(gpt_result, globals(), loc)
@@ -139,7 +140,7 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     }
 
     response = client.chat.completions.create(
-        model="gpt-3.5-turbo",
+        model="gpt-4",
         messages=[
             {"role": "system", "content": """You are using Python pandas and seaborn library.
         Name of dataframe is 'df', which has the following columns:
@@ -151,6 +152,7 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     )
 
     gpt_result = response.choices[0].message.content
+    gpt_result = gpt_result.replace("```python\n", "").replace("\n```", "")
 
     loc = {}
     print(gpt_result)
