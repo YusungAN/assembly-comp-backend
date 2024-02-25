@@ -10,7 +10,8 @@ router = APIRouter()
 def query_sim_doc(user_text: UserText):
     try:
         texts = user_text.text
-        text_li = texts.split('\n\n')
+        text_li = texts.split('\n')
+        print(text_li)
         res_per_pgh = []
         for text in text_li:
             sim_doc_id = query_pinecone_document(text, top_k=5)
@@ -29,9 +30,12 @@ def query_sim_doc(user_text: UserText):
                 data = {'title': table_data['title'], 'writer': table_data['writer'], 'date': table_data['date'],
                         'from': table_data['from_'], 'url': table_data['url'], 'reference': reference}
                 res_list.append(data)
-            res_per_pgh.append(res_list)
+            res_per_pgh.append({
+                'text' : text,
+                'documents' : res_list
+            })
 
-        return {'success': True, 'documents': res_per_pgh}
+        return {'success': True, 'paragraphs': res_per_pgh}
     except Exception as e:
         print(e)
         return {'success': False}
@@ -41,7 +45,7 @@ def query_sim_doc(user_text: UserText):
 def query_sim_law(user_text: UserText):
     try:
         texts = user_text.text
-        text_li = texts.split('\n\n')
+        text_li = texts.split('\n')
         res_per_pgh = []
         for text in text_li:
             sim_law_id = query_pinecone_law(text, top_k=5)
@@ -54,11 +58,14 @@ def query_sim_law(user_text: UserText):
                 table_data = search_law_by_id(id)
                 if table_data is None:
                     continue
-                data = {'title': table_data['title'].strip(), 'url': table_data['url']}
+                data = {'title': table_data['title'].strip(), 'url': table_data['url'], 'reference' : 'to be implemented'}
                 res_list.append(data)
-            res_per_pgh.append(res_list)
+            res_per_pgh.append({
+                'text': text,
+                'laws': res_list
+            })
 
-        return {'success': True, 'laws': res_per_pgh}
+        return {'success': True, 'paragraphs': res_per_pgh}
     except Exception as e:
         print(e)
         return {'success': False}
