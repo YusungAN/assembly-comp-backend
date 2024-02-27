@@ -123,11 +123,17 @@ async def gpt_range(gpt_input: GptInput):
 async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     global df
     import matplotlib.font_manager as fm
-    font_location = './static/NanumGothic.ttf'  # 폰트 위치
+    import socket
 
-    font_name = fm.FontProperties(fname=font_location).get_name()
 
-    font_name = "Malgun Gothic"
+    if socket.gethostname()[:7] == "DESKTOP":
+        font_name = "Malgun Gothic"
+    else:
+        font_location = './static/NanumGothic.ttf'  # 폰트 위치
+
+        font_name = fm.FontProperties(fname=font_location).get_name()
+
+
 
 
     plt.rc("font", family=font_name)
