@@ -78,6 +78,7 @@ class EditGptInput(BaseModel):
     prompt: str
     stat_data: list
     graph_type: int
+    template_index : int
 
 
 @router.post("/stat/gpt/range")
@@ -94,6 +95,7 @@ async def gpt_range(gpt_input: GptInput):
             {"role": "system", "content": """You are using Python pandas library.
         Name of dataframe is 'df', which has the following columns:
         '연도', '항목', '단위', '값'.
+        After processing the data, you should save the result as 'df'.
         Just provide Python code without description. You don't need to import library or print result.
         Example : df = df[(df['연도'] >= 1980)]
         """},
@@ -124,12 +126,79 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     font_location = './static/NanumGothic.ttf'  # 폰트 위치
 
     font_name = fm.FontProperties(fname=font_location).get_name()
+
+    font_name = "Malgun Gothic"
+
+
     plt.rc("font", family=font_name)
     sns.set(font=font_name,
             rc={"axes.unicode_minus": False}, style='white')
 
     df = pd.DataFrame(gpt_input.stat_data)
+
+    df_str = str(df.values.tolist())
+
     df = df.rename(columns={"year": "연도", "name": "항목", "unit": "단위", "value": "값"})
+
+    template_code = ""
+
+    if gpt_input.graph_type == 0:
+        if gpt_input.template_index == 0:
+            template_code = """You should include below source code between chevrons.
+<<<
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+max_value_index = df['값'].idxmax()
+clrs = ['grey' if (x < max_value_index) else 'yellow' for x in df.index]
+
+fig = plt.figure(figsize=(10,6))
+sns.barplot(x='연도', y='값', data=df, palette=clrs)
+>>>
+"""
+        elif gpt_input.template_index == 1:
+            template_code = """You should include below source code between chevrons.
+            <<<
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10,6))
+fig = sns.barplot(x='연도', y='값', data=df, color='orange')
+plt.ylim(min(df['값']) * 0.95, max(df['값'])+1)
+plt.show()
+            >>>
+            """
+
+        elif gpt_input.template_index == 2:
+            template_code = """You should include below source code between chevrons.
+            <<<
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10,6))
+fig = sns.barplot(x='연도', y='값', data=df, palette='rainbow')
+plt.show()
+            
+            >>>
+            """
+        elif gpt_input.template_index == 3:
+            template_code = """You should include below source code between chevrons.
+            <<<
+import seaborn as sns
+import matplotlib.pyplot as plt
+
+plt.figure(figsize=(10, 6))
+fig = sns.barplot(data=df, x='연도', y='값', hue='항목', palette=['white'])
+fig.grid(False)
+fig.set_facecolor('lightgrey')
+
+# Changing bar border color and hatch
+for rectangle in fig.patches:
+    rectangle.set_hatch('/')
+    rectangle.set_edgecolor('black')
+    rectangle.set_linewidth(2)
+            >>>
+            """
 
     client = openai.OpenAI(api_key=os.getenv('OPEN_AI_KEY'))
 
@@ -142,10 +211,16 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
     response = client.chat.completions.create(
         model="gpt-4",
         messages=[
-            {"role": "system", "content": """You are using Python pandas and seaborn library.
+            {"role": "system", "content": f"""You are using Python pandas and seaborn library.
         Name of dataframe is 'df', which has the following columns:
         '연도'(int), '항목'(string), '단위'(string), '값'(double).
+        Below is the data you provided.
+        [
+        {df_str}
+        ]
+        {template_code}
         Just provide Python code without description. Save the chart variable as 'fig'.
+      
         """},
             {"role": "user", "content": prompt_dict[gpt_input.graph_type] + gpt_input.prompt},
         ]
@@ -153,6 +228,9 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
 
     gpt_result = response.choices[0].message.content
     gpt_result = gpt_result.replace("```python\n", "").replace("\n```", "")
+
+    if not('a' <= gpt_result[0] <= "z" or 'A' <= gpt_result[0] <='Z'):
+        gpt_result = "# " + gpt_result
 
     loc = {}
     print(gpt_result)
@@ -198,3 +276,7 @@ async def gpt_edit(gpt_input: EditGptInput, api_response: Response):
 @router.get("/download/photo/{photo_url}")
 async def download_photo(photo_url: str):
     return FileResponse("./result/images/" + photo_url)
+
+@router.get("/template/{photo_url}")
+async def download_template_image(photo_url: str):
+    return FileResponse("./result/templates/" + photo_url)
